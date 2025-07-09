@@ -18,11 +18,7 @@ Bu proje, kullanıcıların CV'lerini ve iş ilanı metinlerini yükleyerek, Azu
 - **Frontend:** React, Vite, Material-UI (MUI)
 - **Diğer:** Azure Cloud Servisleri
 
-## Güvenlik ve Gizlilik
 
-- Azure anahtarlarınızı ve endpoint bilgilerinizi asla repoya veya herkese açık bir yere koymayın.
-- `appsettings.Development.json` ve benzeri dosyaları `.gitignore`'da tutun.
-- Gerekirse anahtarları ortam değişkeni (Environment Variable) olarak yönetin.
 
 ## Katkı ve Lisans
 
