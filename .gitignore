@@ -1,0 +1,12 @@
+appsettings.Development.json
+appsettings.json    
+.env
+.env.local
+.env.development.local
+.env.production.local
+.env.test.local
+.env.test
+.env.production
+.env.development
+.env.local
+sad/
