@@ -1,22 +1,34 @@
 using CvAnalysis.Server.Models;
 using System.Text.RegularExpressions;
-using Azure.AI.OpenAI;
-using Azure;
 using Microsoft.Extensions.Configuration;
+using OpenAI.Chat;
+using System.ClientModel;
+using OpenAI;
+using Azure;
+using Azure.AI.OpenAI;
 
 namespace CvAnalysis.Server.Services
 {
     public class TextAnalysisService : ITextAnalysisService
     {
-        private readonly OpenAIClient _openAiClient;
-        private readonly string _openAiDeployment;
+        private readonly ChatClient _chatClient;
+        private readonly IConfiguration _configuration;
 
         public TextAnalysisService(IConfiguration configuration)
         {
+            _configuration = configuration;
             var endpoint = configuration["AzureAi:OpenAiEndpoint"];
             var key = configuration["AzureAi:OpenAiKey"];
-            _openAiDeployment = configuration["AzureAi:OpenAiDeployment"] ?? "gpt-35-turbo";
-            _openAiClient = new OpenAIClient(new Uri(endpoint), new AzureKeyCredential(key));
+            var deployment = configuration["AzureAi:OpenAiDeployment"];
+
+            if (string.IsNullOrWhiteSpace(endpoint))
+                throw new InvalidOperationException("Azure OpenAI endpoint appsettings veya environment değişkenlerinde tanımlı değil!");
+            if (string.IsNullOrWhiteSpace(key))
+                throw new InvalidOperationException("Azure OpenAI key appsettings veya environment değişkenlerinde tanımlı değil!");
+            if (string.IsNullOrWhiteSpace(deployment))
+                throw new InvalidOperationException("Azure OpenAI deployment adı appsettings veya environment değişkenlerinde tanımlı değil!");
+
+            _chatClient = new ChatClient(deployment, new ApiKeyCredential(key), new OpenAIClientOptions { Endpoint = new Uri(endpoint) });
         }
 
         public async Task<AnalysisReport> AnalyzeTextAsync(string cvText, string jobDescription, string lang = "tr")
@@ -28,107 +40,75 @@ namespace CvAnalysis.Server.Services
                 return report;
             }
 
-            List<string> targetKeywords = string.IsNullOrWhiteSpace(jobDescription)
-                ? new List<string> { "C#", ".NET", "React", "SQL", "Azure" }
-                : ExtractKeywordsFromJobDescription(jobDescription);
+            string prompt = lang == "en"
+                ? @"Below is a resume (CV) text and a job description.
+1- Score the CV's ATS compatibility between 0-100 and return only the numeric score.
+2- Then, generate 5 personalized, bullet-pointed suggestions in English to improve the CV's ATS compatibility and overall quality.
+Respond in this format:
+Score: <number>
+Suggestions:
+- ...
+- ..."
+                : @"Aşağıda bir özgeçmiş (CV) ve iş ilanı metni verilmiştir.
+1- CV'nin ATS uyumluluğunu 0-100 arasında puanla ve sadece sayısal puanı döndür.
+2- Ayrıca, CV'nin ATS uyumluluğunu ve genel kalitesini artırmak için kişiye özel, Türkçe ve maddeler halinde 5 öneri üret.
+Yanıtı şu formatta ver:
+Puan: <sayı>
+Öneriler:
+- ...
+- ...";
 
-            var foundKeywords = new List<string>();
-            var lowerCvText = cvText.ToLowerInvariant();
+            prompt += $"\n\nCV metni:\n{cvText}\n\nİş ilanı metni:\n{jobDescription}";
 
-            foreach (var keyword in targetKeywords)
+            // Prompt ve mesajlarınızı oluşturun
+            var messages = new List<ChatMessage> { new UserChatMessage(prompt) };
+            var requestOptions = new ChatCompletionOptions
             {
-                if (Regex.IsMatch(lowerCvText, $@"\b{Regex.Escape(keyword.ToLowerInvariant())}\b"))
+                MaxOutputTokenCount = 1024,
+                Temperature = 0.7f,
+                TopP = 0.95f,
+            };
+            // Sadece DI ile gelen _chatClient'ı kullanın!
+            var response = await _chatClient.CompleteChatAsync(messages, requestOptions);
+            var result = response.Value.Content[0].Text;
+
+            // Yanıtı parse et: puan ve öneriler
+            int puan = 0;
+            var oneriler = new List<string>();
+            var lines = result.Split('\n');
+            foreach (var line in lines)
+            {
+                if (lang == "en" && line.Trim().StartsWith("Score:"))
                 {
-                    foundKeywords.Add(keyword);
+                    int.TryParse(line.Replace("Score:", "").Trim(), out puan);
+                }
+                else if (lang != "en" && line.Trim().StartsWith("Puan:"))
+                {
+                    int.TryParse(line.Replace("Puan:", "").Trim(), out puan);
+                }
+                else if (line.Trim().StartsWith("-"))
+                {
+                    oneriler.Add(line.Trim().TrimStart('-').Trim());
                 }
             }
-
-            report.FoundKeywords = foundKeywords;
-            report.MissingKeywords = targetKeywords.Except(foundKeywords).ToList();
-
-            if (targetKeywords.Any())
+            report.AtsScore = puan;
+            report.ExtraAdvice = oneriler;
+            report.Suggestions.AddRange(oneriler);
+            if (puan >= 70)
             {
-                report.AtsScore = Math.Round((double)foundKeywords.Count / targetKeywords.Count * 100);
-            }
-
-            if (report.AtsScore < 50)
-            {
-                if(report.MissingKeywords.Any())
-                    report.Suggestions.Add(lang == "en"
-                        ? $"Consider adding these keywords to improve your ATS compatibility: {string.Join(", ", report.MissingKeywords)}"
-                        : $"ATS uyumluluğunuzu artırmak için şu anahtar kelimeleri eklemeyi düşünün: {string.Join(", ", report.MissingKeywords)}");
+                report.PositiveFeedback.Add(lang == "en"
+                    ? "Your CV's ATS compatibility is high!"
+                    : "CV'nizin ATS uyumluluğu yüksek!");
             }
             else
             {
-                report.PositiveFeedback.Add(lang == "en"
-                    ? "You have successfully included important keywords from the job description in your CV!"
-                    : "İş ilanıyla ilgili önemli anahtar kelimeleri başarıyla CV'nize eklemişsiniz!");
+                report.Suggestions.Add(lang == "en"
+                    ? "Consider improving your CV based on the suggestions above."
+                    : "Yukarıdaki önerilere göre CV'nizi geliştirmeyi düşünün.");
             }
-
-            // Dinamik öneri için OpenAI prompt
-            string prompt = lang == "en"
-                ? $@"Below is a resume (CV) text and a job description. Generate 5 personalized, bullet-pointed suggestions in English to improve the CV's ATS compatibility and overall quality. Give advice on missing keywords, format, content, language, detail, development, and general job application success. Only output the suggestions as a list, no explanations.
-
-CV text:
-{cvText}
-
-Job description:
-{jobDescription}
-"
-                : $@"Aşağıda bir özgeçmiş (CV) metni ve iş ilanı metni verilmiştir. CV'nin ATS uyumluluğunu ve genel kalitesini artırmak için kişiye özel, Türkçe ve maddeler halinde 5 öneri/tavsiye üret. Eksik anahtar kelimeleri, format, içerik, dil, detay, gelişim ve genel iş başvurusu başarısı açısından öneriler ver. Sadece öneri maddelerini üret, açıklama ekleme.
-
-CV metni:
-{cvText}
-
-İş ilanı metni:
-{jobDescription}
-";
-            var chatCompletionsOptions = new ChatCompletionsOptions()
-            {
-                Messages = { new ChatMessage(ChatRole.System, prompt) },
-                MaxTokens = 512,
-                Temperature = 0.7f
-            };
-            var response = await _openAiClient.GetChatCompletionsAsync(_openAiDeployment, chatCompletionsOptions);
-            var openAiResult = response.Value.Choices.FirstOrDefault()?.Message.Content ?? "";
-            // Satırlara böl ve boşları at
-            report.ExtraAdvice = openAiResult.Split('\n').Select(x => x.Trim()).Where(x => !string.IsNullOrWhiteSpace(x)).ToList();
-            // OpenAI'dan gelen önerileri Suggestions'a da ekle
-            report.Suggestions.AddRange(report.ExtraAdvice);
-
-            // ATS puanını yükseltmek için temel maddeler (statik, istersen OpenAI ile de üretebiliriz)
-            report.AtsImprovementTips = lang == "en"
-                ? new List<string>
-                {
-                    "Add keywords from the job description to your CV.",
-                    "Use a simple and clean format, avoid tables and shapes.",
-                    "Standardize section titles (Education, Experience, Skills, etc.).",
-                    "Save as PDF or DOCX format.",
-                    "Be concise, avoid unnecessarily long sentences.",
-                    "Pay attention to spelling and grammar.",
-                    "Include your contact information completely.",
-                    "Avoid unnecessary personal information (ID, marital status, religion, etc.).",
-                    "Specify dates and positions for each job experience.",
-                    "List education and certificates in chronological order."
-                }
-                : new List<string>
-                {
-                    "İş ilanındaki anahtar kelimeleri CV'nize ekleyin.",
-                    "Sade ve düz bir format kullanın, tablo ve şekillerden kaçının.",
-                    "Başlıkları standartlaştırın (Eğitim, Deneyim, Yetenekler vb.).",
-                    "PDF veya DOCX formatında kaydedin.",
-                    "Kısa ve öz yazın, gereksiz uzun cümlelerden kaçının.",
-                    "İmla ve dil bilgisine dikkat edin.",
-                    "İletişim bilgilerinizi eksiksiz yazın.",
-                    "Gereksiz kişisel bilgilerden kaçının (TC kimlik, medeni durum, din vb.).",
-                    "Her iş deneyimi için tarih ve pozisyon belirtin.",
-                    "Eğitim ve sertifikaları kronolojik sırayla yazın."
-                };
-
             return report;
         }
 
-        // Eski sync fonksiyon (artık kullanılmıyor)
         public AnalysisReport AnalyzeText(string cvText, string jobDescription)
         {
             throw new NotImplementedException("Lütfen AnalyzeTextAsync fonksiyonunu kullanın.");
@@ -150,7 +130,7 @@ CV metni:
 
             foreach (var skill in potentialSkills)
             {
-                if (Regex.IsMatch(jobDescription, $@"\b{Regex.Escape(skill)}\b", RegexOptions.IgnoreCase))
+                if (System.Text.RegularExpressions.Regex.IsMatch(jobDescription, $@"\b{System.Text.RegularExpressions.Regex.Escape(skill)}\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
                 {
                     foundSkills.Add(skill);
                 }
