@@ -40,3 +40,17 @@
 .read-the-docs {
   color: #888;
 }
+
+.custom-scroll textarea::-webkit-scrollbar {
+  width: 8px;
+  background: #fff;
+  border-radius: 8px;
+}
+.custom-scroll textarea::-webkit-scrollbar-thumb {
+  background: #e0e7ef;
+  border-radius: 8px;
+}
+.custom-scroll textarea {
+  scrollbar-width: thin;
+  scrollbar-color: #e0e7ef #fff;
+}

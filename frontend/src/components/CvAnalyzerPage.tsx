@@ -36,6 +36,8 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 // import FlagGB from '../assets/flag-gb.svg';
 import { useTheme, ThemeProvider, createTheme } from '@mui/material/styles';
 import Switch from '@mui/material/Switch';
+import Lottie from 'lottie-react';
+import heroAnimation from '../assets/hero-illustration.json';
 
 interface AnalysisReport {
     atsScore: number;
@@ -226,194 +228,278 @@ export const CvAnalyzerPage: React.FC = () => {
                         }}
                     />
                 </Box>
-                {/* Ana içerik kutusu */}
+                {/* Hero alanı */}
                 <Box sx={{
-                    p: { xs: 1, md: 4 },
-                    maxWidth: '1400px',
-                    margin: 'auto',
+                    width: '100%',
                     minHeight: '100vh',
                     background: 'linear-gradient(135deg, #e0e7ff 0%, #f4f6f8 100%)',
-                    position: 'relative',
-                    transition: 'background 0.5s',
                 }}>
-                    <Paper elevation={0} sx={{
-                        p: 4, mb: 4, textAlign: 'center', borderRadius: 3,
-                        background: 'linear-gradient(90deg, #6366f1 0%, #60a5fa 100%)',
-                        color: 'white',
-                        boxShadow: 3
+                    <Box sx={{
+                        py: { xs: 2, md: 4 }, // Daha az üst-alt boşluk
+                        mb: 4,
+                        textAlign: 'center',
                     }}>
-                        <Typography variant="h3" component="h1" sx={{ fontWeight: 'bold', letterSpacing: 1 }}>
+                        <Typography variant="h2" component="h1" sx={{ fontWeight: 'bold', letterSpacing: 1, color: '#6366f1', mb: 2, fontSize: { xs: 32, md: 48 } }}>
                             {t('Yapay Zeka Destekli CV Analiz Motoru', 'AI-Powered CV Analysis Engine')}
                         </Typography>
-                        <Typography variant="subtitle1" sx={{ color: 'rgba(255,255,255,0.85)' }}>
+                        <Typography variant="h5" sx={{ color: '#3b3b3b', mb: 2, fontWeight: 500 }}>
                             {t('CV\'nizi yükleyerek ATS uyumluluğunu ve içerik kalitesini saniyeler içinde ölçün.', 'Upload your CV to instantly measure ATS compatibility and content quality.')}
                         </Typography>
-                    </Paper>
-                    <Box sx={{
-                        display: 'grid',
-                        gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
-                        gap: 4,
-                        mb: 4
-                    }}>
-                        {/* İş İlanı Metin Kutusu */}
-                        <Card sx={{ height: '100%' }} elevation={2}>
-                            <CardContent>
-                                <Typography variant="h6" gutterBottom>{t('1. Adım: İş İlanı Metnini Yapıştırın (İsteğe Bağlı)', 'Step 1: Paste Job Description (Optional)')}
-                                </Typography>
-                                <TextField
-                                    fullWidth
-                                    multiline
-                                    rows={8}
-                                    variant="outlined"
-                                    label={t('İş İlanı Metni', 'Job Description')}
-                                    placeholder={t('Karşılaştırma yapmak istediğiniz iş ilanı metnini buraya yapıştırın...', 'Paste the job description you want to compare here...')}
-                                    value={jobDescription}
-                                    onChange={(e) => setJobDescription(e.target.value)}
-                                />
-                            </CardContent>
-                        </Card>
-
-                        {/* CV Yükleme Alanı */}
-                        <Card sx={{ height: '100%' }} elevation={2}>
-                            <CardContent>
-                                <Typography variant="h6" gutterBottom>{t('2. Adım: CV\'nizi Yükleyin ve Analiz Edin', 'Step 2: Upload Your CV and Analyze')}</Typography>
-                                <Box {...getRootProps()} sx={{ 
-                                    border: `3px dashed ${isDragActive ? '#3f51b5' : 'lightgrey'}`, 
-                                    p: 4, 
-                                    textAlign: 'center', 
-                                    cursor: 'pointer', 
-                                    mt: 2, 
-                                    borderRadius: 2, 
-                                    bgcolor: isDragActive ? '#e8eaf6' : 'white', 
-                                    transition: 'background-color 0.3s ease', 
-                                    height: '200px',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    justifyContent: 'center'
-                                }}>
-                                    <input {...getInputProps()} />
-                                    <UploadFileIcon sx={{ fontSize: 40, color: 'grey.500', mb: 1 }} />
-                                    <Typography>{isDragActive ? t('Dosyayı Buraya Bırakın...', 'Drop your file here...') : t('Analiz İçin CV Dosyanızı Sürükleyin', 'Drag and drop your CV file here, or click to select')}</Typography>
-                                    <Typography color="text.secondary" variant="body2">{t('veya seçmek için tıklayın (.pdf, .docx)', 'or click to select (.pdf, .docx)')}
-                                    </Typography>
-                                </Box>
-                            </CardContent>
-                        </Card>
                     </Box>
-                    {isLoading && (
-                        <Stack spacing={3}>
-                            <Skeleton variant="rectangular" animation="wave" height={150} />
-                            <Box sx={{ display: 'flex', gap: 3 }}>
-                                <Skeleton variant="rectangular" animation="wave" sx={{ flex: 5 }} height={200} />
-                                <Skeleton variant="rectangular" animation="wave" sx={{ flex: 7 }} height={200} />
-                            </Box>
-                        </Stack>
-                    )}
-                    
-                    {error && <Alert severity="error" variant="filled" sx={{ mb: 3 }}>{error}</Alert>}
+                    {/* Ana içerik kutusu */}
+                    <Box sx={{
+                        p: { xs: 1, md: 4 },
+                        maxWidth: '1400px',
+                        margin: 'auto',
+                        position: 'relative',
+                        transition: 'background 0.5s',
+                    }}>
+                        {/* 1. ve 2. adım kutuları için ayrı grid */}
+                        <Box
+                          sx={{
+                            display: 'grid',
+                            gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+                            gap: { xs: 3, md: 6 },
+                            mb: 0,
+                          }}
+                        >
+                          {/* İş İlanı Metin Kutusu */}
+                          <Card
+                            elevation={0}
+                            sx={{
+                              borderRadius: 4,
+                              boxShadow: 'none',
+                              background: 'rgba(255,255,255,0.85)',
+                              border: '1.5px solid #e0e7ff',
+                              p: 4,
+                              backdropFilter: 'blur(2px)',
+                              transition: 'box-shadow 0.3s, transform 0.2s',
+                              '&:hover': {
+                                boxShadow: '0 2px 12px 0 rgba(99,102,241,0.10)',
+                                transform: 'scale(1.01)'
+                              },
+                              height: '100%'
+                            }}
+                          >
+                            <CardContent>
+                              <Typography
+                                variant="h6"
+                                gutterBottom
+                                sx={{
+                                  fontWeight: 700,
+                                  color: '#3f51b5',
+                                  fontSize: { xs: 18, md: 22 },
+                                  mb: 2
+                                }}
+                              >
+                                {t('1. Adım: İş İlanı Metnini Yapıştırın (İsteğe Bağlı)', 'Step 1: Paste Job Description (Optional)')}
+                              </Typography>
+                              <TextField
+                                className="custom-scroll"
+                                fullWidth
+                                multiline
+                                rows={8}
+                                variant="outlined"
+                                label={t('İş İlanı Metni', 'Job Description')}
+                                placeholder={t('Karşılaştırma yapmak istediğiniz iş ilanı metnini buraya yapıştırın...', 'Paste the job description you want to compare here...')}
+                                value={jobDescription}
+                                onChange={(e) => setJobDescription(e.target.value)}
+                                sx={{
+                                  background: '#fff',
+                                  borderRadius: 2,
+                                  '& .MuiOutlinedInput-root': {
+                                    borderRadius: 2,
+                                  },
+                                  '& .MuiOutlinedInput-notchedOutline': {
+                                    borderColor: '#c7d2fe'
+                                  },
+                                  '&:hover .MuiOutlinedInput-notchedOutline': {
+                                    borderColor: '#6366f1'
+                                  },
+                                  '& .MuiInputLabel-root': {
+                                    color: '#6366f1'
+                                  }
+                                }}
+                                InputProps={{
+                                  style: { fontSize: 16, color: '#22223b' }
+                                }}
+                              />
+                            </CardContent>
+                          </Card>
 
-                    {analysisReport && (
-                        <Box sx={{
-                            display: 'flex',
-                            flexDirection: { xs: 'column', md: 'row' },
-                            gap: 4,
-                            alignItems: 'flex-start',
-                            mt: 2
-                        }}>
-                            <Box sx={{ flex: { md: 5 }, minWidth: 0 }}>
-                                <Stack spacing={3}>
-                                    <Card elevation={4} sx={{ borderRadius: 3, boxShadow: 6, transition: 'transform 0.2s', '&:hover': { transform: 'scale(1.03)' } }}>
-                                        <CardContent sx={{ textAlign: 'center', p: 4 }}>
-                                            <TrendingUpIcon sx={{ fontSize: 36, color: '#6366f1', mb: 1 }} />
-                                            <Typography variant="h5" component="div" gutterBottom sx={{ fontWeight: '600' }}>
-                                                {t('ATS Uyumluluk Puanı', 'ATS Compatibility Score')}
-                                            </Typography>
-                                            <CircularProgressWithLabel value={analysisReport.atsScore} />
-                                        </CardContent>
-                                    </Card>
-                                    <Card elevation={2} sx={{ borderRadius: 3, boxShadow: 3, transition: 'transform 0.2s', '&:hover': { transform: 'scale(1.02)' } }}>
-                                        <CardContent>
-                                            <FeedbackIcon sx={{ fontSize: 28, color: '#22c55e', mb: 1 }} />
-                                            <Typography variant="h6" gutterBottom>{t('Öneriler ve Geri Bildirimler', 'Suggestions and Feedback')}</Typography>
-                                            {analysisReport.positiveFeedback.map((fb, i) => (
-                                                <Alert key={i} icon={<CheckCircleIcon fontSize="inherit" />} severity="success" sx={{ mb: 1 }}>
-                                                    {fb}
-                                                </Alert>
-                                            ))}
-                                            {analysisReport.suggestions.map((sug, i) => (
-                                                <Alert key={i} severity="info" sx={{ mb: 1 }}>
-                                                    {sug}
-                                                </Alert>
-                                            ))}
-                                        </CardContent>
-                                    </Card>
-                                    <Card elevation={2} sx={{ borderRadius: 3, boxShadow: 3, transition: 'transform 0.2s', '&:hover': { transform: 'scale(1.02)' } }}>
-                                        <CardContent>
-                                            <TrendingUpIcon sx={{ fontSize: 28, color: '#f59e42', mb: 1 }} />
-                                            <Typography variant="h6" gutterBottom>{t('ATS Puanını Yükseltmek İçin Tavsiyeler', 'Tips to Improve ATS Score')}</Typography>
-                                            <ul style={{ marginTop: 8, marginBottom: 0 }}>
-                                                {analysisReport.atsImprovementTips && analysisReport.atsImprovementTips.map((tip, i) => (
-                                                    <li key={i} style={{ marginBottom: 6 }}>
-                                                        <Typography variant="body2">{tip}</Typography>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </CardContent>
-                                    </Card>
-                                </Stack>
-                            </Box>
-                            <Box sx={{ flex: { md: 7 }, minWidth: 0 }}>
-                                <Stack spacing={3}>
-                                    <Card elevation={2} sx={{ borderRadius: 3, boxShadow: 3, transition: 'transform 0.2s', '&:hover': { transform: 'scale(1.02)' } }}>
-                                        <CardContent>
-                                            <KeyIcon sx={{ fontSize: 28, color: '#6366f1', mb: 1 }} />
-                                            <Typography variant="h6">{t('Bulunan Anahtar Kelimeler', 'Found Keywords')}</Typography>
-                                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 2 }}>
-                                                {analysisReport.foundKeywords.length > 0 ? 
-                                                    analysisReport.foundKeywords.map(keyword => (
-                                                        <Chip key={keyword} label={keyword} color="success" variant="filled" />
-                                                    )) : 
-                                                    <Typography variant="body2" color="text.secondary">
-                                                        {t('Hedeflenen anahtar kelimelerden hiçbiri bulunamadı.', 'None of the targeted keywords were found.')}
-                                                    </Typography>
-                                                }
-                                            </Box>
-                                        </CardContent>
-                                    </Card>
-                                    <Card elevation={2} sx={{ borderRadius: 3, boxShadow: 3, transition: 'transform 0.2s', '&:hover': { transform: 'scale(1.02)' } }}>
-                                        <CardContent>
-                                            <WarningAmberIcon sx={{ fontSize: 28, color: '#f59e42', mb: 1 }} />
-                                            <Typography variant="h6">{t('Eksik Anahtar Kelimeler', 'Missing Keywords')}</Typography>
-                                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 2 }}>
-                                                {analysisReport.missingKeywords.length > 0 ? 
-                                                    analysisReport.missingKeywords.map(keyword => (
-                                                        <Chip key={keyword} label={keyword} color="warning" variant="outlined" />
-                                                    )) : 
-                                                    <Typography variant="body2" color="text.secondary">
-                                                        {t('Tebrikler! Hedeflenen tüm anahtar kelimeler CV\'nizde mevcut.', 'Congratulations! All targeted keywords are present in your CV.')}
-                                                    </Typography>
-                                                }
-                                            </Box>
-                                        </CardContent>
-                                    </Card>
-                                    {/* Ekstra faydalı öneriler kartı burada! */}
-                                    <Card elevation={3} sx={{ borderRadius: 3, boxShadow: 6, background: 'linear-gradient(90deg, #fef9c3 0%, #f0e68c 100%)', transition: 'transform 0.2s', '&:hover': { transform: 'scale(1.03)' } }}>
-                                        <CardContent>
-                                            <LightbulbIcon sx={{ fontSize: 32, color: '#f59e42', mb: 1 }} />
-                                            <Typography variant="h6" gutterBottom>{t('Ekstra Faydalı Öneriler', 'Extra Useful Tips')}</Typography>
-                                            <ul style={{ marginTop: 8, marginBottom: 0 }}>
-                                                {analysisReport.extraAdvice && analysisReport.extraAdvice.map((advice, i) => (
-                                                    <li key={i} style={{ marginBottom: 6 }}>
-                                                        <Typography variant="body2">{advice}</Typography>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </CardContent>
-                                    </Card>
-                                </Stack>
-                            </Box>
+                          {/* CV Yükleme Alanı */}
+                          <Card
+                            elevation={0}
+                            sx={{
+                              borderRadius: 4,
+                              boxShadow: 'none',
+                              background: 'rgba(255,255,255,0.85)',
+                              border: '1.5px solid #e0e7ff',
+                              p: 4,
+                              backdropFilter: 'blur(2px)',
+                              transition: 'box-shadow 0.3s, transform 0.2s',
+                              '&:hover': {
+                                boxShadow: '0 2px 12px 0 rgba(99,102,241,0.10)',
+                                transform: 'scale(1.01)'
+                              },
+                              height: '100%'
+                            }}
+                          >
+                            <CardContent>
+                              <Typography variant="h6" gutterBottom sx={{ fontWeight: 700, color: '#3f51b5', fontSize: { xs: 18, md: 22 }, mb: 2 }}>{t('2. Adım: CV\'nizi Yükleyin ve Analiz Edin', 'Step 2: Upload Your CV and Analyze')}</Typography>
+                              <Box {...getRootProps()} sx={{ 
+                                  border: `3px dashed ${isDragActive ? '#3f51b5' : 'lightgrey'}`, 
+                                  p: 4, 
+                                  textAlign: 'center', 
+                                  cursor: 'pointer', 
+                                  mt: 2, 
+                                  borderRadius: 2, 
+                                  bgcolor: isDragActive ? '#e8eaf6' : 'white', 
+                                  transition: 'background-color 0.3s ease', 
+                                  height: '200px',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  alignItems: 'center',
+                                  justifyContent: 'center'
+                              }}>
+                                  <input {...getInputProps()} />
+                                  <UploadFileIcon sx={{ fontSize: 40, color: 'grey.500', mb: 1 }} />
+                                  <Typography sx={{ fontWeight: 500, mb: 0.5 }}>{isDragActive ? t('Dosyayı Buraya Bırakın...', 'Drop your file here...') : t('Analiz İçin CV Dosyanızı Sürükleyin', 'Drag and drop your CV file here, or click to select')}</Typography>
+                                  <Typography color="text.secondary" variant="body2">{t('veya seçmek için tıklayın (.pdf, .docx)', 'or click to select (.pdf, .docx)')}
+                                  </Typography>
+                              </Box>
+                            </CardContent>
+                          </Card>
                         </Box>
-                    )}
+
+                        {/* Sonuç kartları: analiz sonrası ayrı grid ve üstte belirgin boşluk */}
+                        {analysisReport && (
+                          <Box
+                            sx={{
+                              display: 'grid',
+                              gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+                              gap: { xs: 3, md: 6 },
+                              mt: { xs: 6, md: 8 }, // Üstte belirgin boşluk
+                              mb: 0,
+                            }}
+                          >
+                            {/* ATS Uyumluluk Puanı */}
+                            <Card elevation={0} sx={{ borderRadius: 4, boxShadow: 'none', background: 'rgba(255,255,255,0.85)', border: '1.5px solid #e0e7ff', p: 5, minHeight: 220, display: 'flex', flexDirection: 'column', justifyContent: 'center', backdropFilter: 'blur(2px)', transition: 'box-shadow 0.3s, transform 0.2s', '&:hover': { boxShadow: '0 2px 12px 0 rgba(99,102,241,0.10)', transform: 'scale(1.01)' } }}>
+                              <CardContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                                  <TrendingUpIcon sx={{ fontSize: 36, color: '#6366f1', mb: 1 }} />
+                                  <Typography variant="h5" component="div" gutterBottom sx={{ fontWeight: '600' }}>
+                                      {t('ATS Uyumluluk Puanı', 'ATS Compatibility Score')}
+                                  </Typography>
+                                  <CircularProgressWithLabel value={analysisReport.atsScore} />
+                              </CardContent>
+                            </Card>
+                            {/* ATS Puanını Yükseltmek İçin Tavsiyeler */}
+                            <Card elevation={0} sx={{ borderRadius: 4, boxShadow: 'none', background: 'rgba(255,255,255,0.85)', border: '1.5px solid #e0e7ff', p: 5, minHeight: 220, display: 'flex', flexDirection: 'column', justifyContent: 'center', backdropFilter: 'blur(2px)', transition: 'box-shadow 0.3s, transform 0.2s', '&:hover': { boxShadow: '0 2px 12px 0 rgba(99,102,241,0.10)', transform: 'scale(1.01)' } }}>
+                              <CardContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                                  <TrendingUpIcon sx={{ fontSize: 28, color: '#f59e42', mb: 1 }} />
+                                  <Typography variant="h6" gutterBottom>{t('ATS Puanını Yükseltmek İçin Tavsiyeler', 'Tips to Improve ATS Score')}</Typography>
+                                  <ul style={{ marginTop: 8, marginBottom: 0, textAlign: 'left' }}>
+                                      {(analysisReport.atsImprovementTips && analysisReport.atsImprovementTips.length > 0)
+                                        ? analysisReport.atsImprovementTips.map((tip, i) => (
+                                            <li key={i} style={{ marginBottom: 6 }}>
+                                                <Typography variant="body2">{tip}</Typography>
+                                            </li>
+                                          ))
+                                        : [
+                                            'İş ilanındaki anahtar kelimeleri CV’nize ekleyin.',
+                                            'Sade ve düz bir format kullanın, tablo ve şekillerden kaçının.',
+                                            'Başlıkları standartlaştırın (Eğitim, Deneyim, Yetenekler vb.).',
+                                            'PDF veya DOCX formatında kaydedin.',
+                                            'Kısa ve öz yazın, gereksiz uzun cümlelerden kaçının.'
+                                          ].map((tip, i) => (
+                                            <li key={i} style={{ marginBottom: 6 }}>
+                                                <Typography variant="body2">{tip}</Typography>
+                                            </li>
+                                          ))
+                                      }
+                                  </ul>
+                              </CardContent>
+                            </Card>
+                            {/* Bulunan Anahtar Kelimeler */}
+                            <Card elevation={0} sx={{ borderRadius: 4, boxShadow: 'none', background: 'rgba(255,255,255,0.85)', border: '1.5px solid #e0e7ff', p: 5, minHeight: 220, display: 'flex', flexDirection: 'column', justifyContent: 'center', backdropFilter: 'blur(2px)', transition: 'box-shadow 0.3s, transform 0.2s', '&:hover': { boxShadow: '0 2px 12px 0 rgba(99,102,241,0.10)', transform: 'scale(1.01)' } }}>
+                              <CardContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                                  <KeyIcon sx={{ fontSize: 28, color: '#6366f1', mb: 1 }} />
+                                  <Typography variant="h6">{t('Bulunan Anahtar Kelimeler', 'Found Keywords')}</Typography>
+                                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 2, justifyContent: 'center' }}>
+                                      {analysisReport.foundKeywords.length > 0 ? 
+                                          analysisReport.foundKeywords.map(keyword => (
+                                              <Chip key={keyword} label={keyword} color="success" variant="filled" />
+                                          )) : 
+                                          <Typography variant="body2" color="text.secondary">
+                                              {t('CV’nizde iş ilanındaki anahtar kelimelerden hiçbiri bulunamadı. CV’nizi güncelleyebilirsiniz.', 'None of the targeted keywords from the job description were found in your CV. Consider updating your CV.')}
+                                          </Typography>
+                                      }
+                                  </Box>
+                              </CardContent>
+                            </Card>
+                            {/* Eksik Anahtar Kelimeler */}
+                            <Card elevation={0} sx={{ borderRadius: 4, boxShadow: 'none', background: 'rgba(255,255,255,0.85)', border: '1.5px solid #e0e7ff', p: 5, minHeight: 220, display: 'flex', flexDirection: 'column', justifyContent: 'center', backdropFilter: 'blur(2px)', transition: 'box-shadow 0.3s, transform 0.2s', '&:hover': { boxShadow: '0 2px 12px 0 rgba(99,102,241,0.10)', transform: 'scale(1.01)' } }}>
+                              <CardContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                                  <WarningAmberIcon sx={{ fontSize: 28, color: '#f59e42', mb: 1 }} />
+                                  <Typography variant="h6">{t('Eksik Anahtar Kelimeler', 'Missing Keywords')}</Typography>
+                                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 2, justifyContent: 'center' }}>
+                                      {analysisReport.missingKeywords.length > 0 ? 
+                                          analysisReport.missingKeywords.map(keyword => (
+                                              <Chip key={keyword} label={keyword} color="warning" variant="outlined" />
+                                          )) : 
+                                          <Typography variant="body2" color="text.secondary">
+                                              {t('Tebrikler! Hedeflenen tüm anahtar kelimeler CV’nizde mevcut.', 'Congratulations! All targeted keywords are present in your CV.')}
+                                          </Typography>
+                                      }
+                                  </Box>
+                              </CardContent>
+                            </Card>
+                          </Box>
+                        )}
+                        {/* Ekstra Tavsiyeler kartı */}
+                        {analysisReport && analysisReport.extraAdvice && analysisReport.extraAdvice.length > 0 && (
+                          <Box
+                            sx={{
+                              mt: { xs: 3, md: 4 },
+                              display: 'flex',
+                              flexDirection: 'row',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            <Card elevation={0} sx={{ maxWidth: 900, width: '100%', borderRadius: 4, boxShadow: 'none', background: 'rgba(255,255,255,0.95)', border: '1.5px solid #e0e7ff', p: 5, minHeight: 180, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', mx: 'auto', backdropFilter: 'blur(2px)', transition: 'box-shadow 0.3s, transform 0.2s', '&:hover': { boxShadow: '0 2px 12px 0 rgba(99,102,241,0.10)', transform: 'scale(1.01)' } }}>
+                              <CardContent sx={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                                <LightbulbIcon sx={{ fontSize: 32, color: '#f59e42', mb: 1 }} />
+                                <Typography variant="h6" gutterBottom sx={{ fontWeight: 700, color: '#f59e42', mb: 2 }}>{t('Ekstra Tavsiyeler', 'Extra Advice')}</Typography>
+                                <ul style={{ marginTop: 8, marginBottom: 0, textAlign: 'left', maxWidth: 700 }}>
+                                  {analysisReport.extraAdvice.map((advice, i) => (
+                                    <li key={i} style={{ marginBottom: 6 }}>
+                                      <Typography variant="body2">{advice}</Typography>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </CardContent>
+                            </Card>
+                          </Box>
+                        )}
+                        {/* Yükleniyor, hata ve diğer durumlar için grid dışında gösterim devam edecek */}
+                        {isLoading && (
+                            <Box sx={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              minHeight: 320,
+                              py: 8,
+                              mt: 6
+                            }}>
+                              <CircularProgress size={64} thickness={5} color="primary" />
+                              <Typography variant="h6" sx={{ mt: 3, color: '#6366f1', fontWeight: 600 }}>
+                                CV’niz analiz ediliyor, lütfen bekleyin...
+                              </Typography>
+                            </Box>
+                        )}
+                        {error && <Alert severity="error" variant="filled" sx={{ mb: 3 }}>{error}</Alert>}
+                    </Box>
                 </Box>
             </>
         </ThemeProvider>

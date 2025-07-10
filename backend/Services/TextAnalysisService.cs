@@ -80,8 +80,22 @@ namespace CvAnalysis.Server.Services
                 var chatClient = azureClient.GetChatClient(deploymentName);
 
                 string prompt = lang == "en"
-                    ? @"Below is a resume (CV) text and a job description.\n1- Score the CV's ATS compatibility between 0-100 and return only the numeric score.\n2- Then, generate 5 personalized, bullet-pointed suggestions in English to improve the CV's ATS compatibility and overall quality.\nRespond in this format:\nScore: <number>\nSuggestions:\n- ...\n- ..."
-                    : @"Aşağıda bir özgeçmiş (CV) ve iş ilanı metni verilmiştir.\n1- CV'nin ATS uyumluluğunu 0-100 arasında puanla ve sadece sayısal puanı döndür.\n2- Ayrıca, CV'nin ATS uyumluluğunu ve genel kalitesini artırmak için kişiye özel, Türkçe ve maddeler halinde 5 öneri üret.\nYanıtı şu formatta ver:\nPuan: <sayı>\nÖneriler:\n- ...\n- ...";
+                    ? @"Below is a resume (CV) text and a job description.
+1- Score the CV's ATS compatibility between 0-100 and return only the numeric score.
+2- Then, generate 5 creative, personalized, and non-generic suggestions in English to improve the CV's ATS compatibility and overall quality. Do NOT repeat generic tips like 'Add keywords', 'Use a simple format', 'Standardize section titles', 'Save as PDF or DOCX', 'Be concise', 'Pay attention to spelling', 'Include your contact information', 'Avoid unnecessary personal information', 'Specify dates and positions', or 'List education and certificates in order'. Focus on unique, actionable, and CV-specific advice based on the actual content.
+Respond in this format:
+Score: <number>
+Suggestions:
+- ...
+- ..."
+                    : @"Aşağıda bir özgeçmiş (CV) ve iş ilanı metni verilmiştir.
+1- CV'nin ATS uyumluluğunu 0-100 arasında puanla ve sadece sayısal puanı döndür.
+2- Ayrıca, CV'nin ATS uyumluluğunu ve genel kalitesini artırmak için yaratıcı, kişiye özel ve sabit/generik olmayan 5 öneri üret. 'Anahtar kelime ekleyin', 'Sade format kullanın', 'Başlıkları standartlaştırın', 'PDF veya DOCX formatında kaydedin', 'Kısa ve öz yazın', 'İmla ve dil bilgisine dikkat edin', 'İletişim bilgilerinizi eksiksiz yazın', 'Gereksiz kişisel bilgilerden kaçının', 'Her iş deneyimi için tarih ve pozisyon belirtin', 'Eğitim ve sertifikaları kronolojik sırayla yazın' gibi klasik tavsiyeleri tekrar etme. Daha özgün ve CV'ye özel, uygulanabilir öneriler ver, gerçek içerikten yola çık.
+Yanıtı şu formatta ver:
+Puan: <sayı>
+Öneriler:
+- ...
+- ...";
 
                 prompt += $"\n\nCV metni:\n{cvText}\n\nİş ilanı metni:\n{jobDescription}";
 
@@ -124,8 +138,7 @@ namespace CvAnalysis.Server.Services
                 }
 
                 report.AtsScore = puan;
-                report.ExtraAdvice = oneriler;
-                report.Suggestions.AddRange(oneriler);
+                report.Suggestions = oneriler;
 
                 if (puan >= 70)
                 {
@@ -140,8 +153,63 @@ namespace CvAnalysis.Server.Services
                         : "Yukarıdaki önerilere göre CV'nizi geliştirmeyi düşünün.");
                 }
 
-                // ATS geliştirme ipuçlarını ekle
+                // Farklı içerik ve dil için:
                 report.AtsImprovementTips = GetAtsImprovementTips(lang);
+                report.ExtraAdvice = report.Suggestions.ToList();
+
+                // Anahtar kelime analizi: iş ilanı ve CV metni boş değilse çalıştır
+                if (!string.IsNullOrWhiteSpace(jobDescription) && !string.IsNullOrWhiteSpace(cvText))
+                {
+                    // OpenAI ile iş ilanı anahtar kelimeleri çıkarımı
+                    string jobKeywordPrompt = $@"
+Aşağıdaki iş ilanı metninden, pozisyon için en önemli 10 anahtar kelimeyi veya anahtar kelime öbeklerini (tercihen 1-2 kelimelik) çıkar. 
+Sadece anahtar kelimeleri virgül ile ayırarak sırala. Açıklama veya başka bir şey ekleme.
+
+İş ilanı metni:
+{jobDescription}
+";
+                    var jobKeywordMessages = new List<ChatMessage> { new UserChatMessage(jobKeywordPrompt) };
+                    var keywordOptions = new ChatCompletionOptions
+                    {
+                        Temperature = 0.2f,
+                        MaxOutputTokenCount = 128,
+                        TopP = 0.95f
+                    };
+                    var jobKeywordCompletion = await chatClient.CompleteChatAsync(jobKeywordMessages, keywordOptions);
+                    var jobKeywordResult = jobKeywordCompletion.Value.Content[0].Text;
+                    var jobKeywords = jobKeywordResult.Split(',')
+                        .Select(k => k.Trim().ToLowerInvariant())
+                        .Where(k => k.Length > 2)
+                        .Distinct()
+                        .ToList();
+
+                    // OpenAI ile CV anahtar kelimeleri çıkarımı
+                    string cvKeywordPrompt = $@"
+Aşağıdaki CV metninden, pozisyon için en önemli 10 anahtar kelimeyi veya anahtar kelime öbeklerini (tercihen 1-2 kelimelik) çıkar. 
+Sadece anahtar kelimeleri virgül ile ayırarak sırala. Açıklama veya başka bir şey ekleme.
+
+CV metni:
+{cvText}
+";
+                    var cvKeywordMessages = new List<ChatMessage> { new UserChatMessage(cvKeywordPrompt) };
+                    var cvKeywordCompletion = await chatClient.CompleteChatAsync(cvKeywordMessages, keywordOptions);
+                    var cvKeywordResult = cvKeywordCompletion.Value.Content[0].Text;
+                    var cvKeywords = cvKeywordResult.Split(',')
+                        .Select(k => k.Trim().ToLowerInvariant())
+                        .Where(k => k.Length > 2)
+                        .Distinct()
+                        .ToList();
+
+                    var foundKeywords = jobKeywords
+                        .Where(jk => cvKeywords.Any(ck => ck.Contains(jk, StringComparison.OrdinalIgnoreCase) || jk.Contains(ck, StringComparison.OrdinalIgnoreCase)))
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .ToList();
+                    var missingKeywords = jobKeywords
+                        .Where(jk => !foundKeywords.Contains(jk, StringComparer.OrdinalIgnoreCase))
+                        .ToList();
+                    report.FoundKeywords = foundKeywords;
+                    report.MissingKeywords = missingKeywords;
+                }
 
                 _logger.LogInformation($"Analiz tamamlandı. Puan: {puan}, Öneri sayısı: {oneriler.Count}");
                 
@@ -195,6 +263,19 @@ namespace CvAnalysis.Server.Services
         public AnalysisReport AnalyzeText(string cvText, string jobDescription)
         {
             throw new NotImplementedException("Lütfen AnalyzeTextAsync fonksiyonunu kullanın.");
+        }
+
+        // Basit anahtar kelime çıkarıcı (kelime köklerine bakmaz, sadece kelime bazlı)
+        private List<string> ExtractKeywords(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return new List<string>();
+            // Noktalama işaretlerini kaldır, küçük harfe çevir, kelimelere ayır
+            var words = Regex.Matches(text.ToLowerInvariant(), @"[\p{L}0-9_]+")
+                .Select(m => m.Value)
+                .Where(w => w.Length > 2) // çok kısa kelimeleri alma
+                .Distinct()
+                .ToList();
+            return words;
         }
     }
 }
