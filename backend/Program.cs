@@ -4,6 +4,11 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Logging konfigürasyonu ekleyin
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -26,13 +31,17 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// Development ortamında detaylı hata sayfalarını göster
+if (app.Environment.IsDevelopment())
+{
+    app.UseDeveloperExceptionPage();
+}
 
 app.UseCors("AllowAll");
 
 app.UseAuthorization();
 
 app.MapControllers();
-
 
 app.UseSwagger();
 app.UseSwaggerUI(c =>
