@@ -23,12 +23,10 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowVercel", policy =>
     {
-        policy.WithOrigins(
-            "https://cv-analysis-lyart.vercel.app",
-            "https://cv-analysis-5pcfcychx-korays-projects-d8ba68be.vercel.app"
-        )
-        .AllowAnyMethod()
-        .AllowAnyHeader();
+        policy
+            .SetIsOriginAllowed(origin => origin != null && origin.EndsWith(".vercel.app"))
+            .AllowAnyMethod()
+            .AllowAnyHeader();
     });
 });
 
