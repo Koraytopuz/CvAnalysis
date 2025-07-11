@@ -98,7 +98,7 @@ export const CvAnalyzerPage: React.FC = () => {
 
         try {
             // Port numarasını doğru ayarlayın - HTTP kullanın, HTTPS değil
-            const API_BASE_URL = 'https://cvanalysis-gfw1.onrender.com'; // Render backend URL'in
+            const API_BASE_URL = 'https://cvanalysis-w7mf.onrender.com'; // Render backend URL'in
             
             const response = await axios.post<AnalysisReport>(
                 `${API_BASE_URL}/api/CvAnalysis/upload`, 

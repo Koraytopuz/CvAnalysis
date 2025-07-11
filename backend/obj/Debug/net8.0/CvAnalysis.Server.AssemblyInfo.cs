@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("CvAnalysis.Server")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+fb47338da08869a31c8e33af047bee6ef79b7b8b")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+52ce64dd8716b9b7b7157633ee031ccb95b2c05a")]
 [assembly: System.Reflection.AssemblyProductAttribute("CvAnalysis.Server")]
 [assembly: System.Reflection.AssemblyTitleAttribute("CvAnalysis.Server")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

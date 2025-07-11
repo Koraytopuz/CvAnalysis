@@ -9,8 +9,8 @@ namespace CvAnalysis.Server.Services
 {
     public class AzureCvAnalysisService : ICvAnalysisService
     {
-        private readonly string _endpoint;
-        private readonly string _apiKey;
+        private readonly string _endpoint = null!;
+        private readonly string _apiKey = null!;
         private readonly ILogger<AzureCvAnalysisService> _logger;
 
         public AzureCvAnalysisService(IConfiguration configuration, ILogger<AzureCvAnalysisService> logger)

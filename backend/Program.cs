@@ -21,9 +21,9 @@ builder.Services.AddScoped<ITextAnalysisService, TextAnalysisService>();
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
+    options.AddPolicy("AllowVercel", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.WithOrigins("https://cv-analysis-lyart.vercel.app")
               .AllowAnyMethod()
               .AllowAnyHeader();
     });
@@ -37,7 +37,7 @@ if (app.Environment.IsDevelopment())
     app.UseDeveloperExceptionPage();
 }
 
-app.UseCors("AllowAll");
+app.UseCors("AllowVercel");
 
 app.UseAuthorization();
 
