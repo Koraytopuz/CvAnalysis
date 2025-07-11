@@ -11,33 +11,14 @@ import {
     CircularProgress,
     Chip,
     Alert,
-    Paper,
-    Stack,
-    Accordion,
-    AccordionSummary,
-    AccordionDetails,
-    Skeleton,
-    TextField,
-    MenuItem,
-    Select,
-    FormControl,
-    InputLabel
+    TextField
 } from '@mui/material';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import LightbulbIcon from '@mui/icons-material/Lightbulb';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import FeedbackIcon from '@mui/icons-material/Feedback';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import KeyIcon from '@mui/icons-material/VpnKey';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-// import FlagTR from '../assets/flag-tr.svg';
-// import FlagGB from '../assets/flag-gb.svg';
-import { useTheme, ThemeProvider, createTheme } from '@mui/material/styles';
-import Switch from '@mui/material/Switch';
-import Lottie from 'lottie-react';
-import heroAnimation from '../assets/hero-illustration.json';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import KeyIcon from '@mui/icons-material/VpnKey';
+import LightbulbIcon from '@mui/icons-material/Lightbulb';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
 
 interface AnalysisReport {
     atsScore: number;
@@ -176,8 +157,6 @@ export const CvAnalyzerPage: React.FC = () => {
     React.useEffect(() => {
         testConnection();
     }, []);
-
-    const LANG_FLAGS = { tr: '🇹🇷', en: '🇬🇧' };
 
     return (
         <ThemeProvider theme={theme}>
